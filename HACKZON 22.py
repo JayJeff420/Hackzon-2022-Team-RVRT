@@ -1,352 +1,281 @@
+import mysql.connector.pooling as mpool
+from tabulate import tabulate
+
+
+db_config = {
+    "host": "localhost",
+    "user": "root",
+    "password": "jay",
+    "database": "employees"
+}
+
+
+connection_pool = mpool.MySQLConnectionPool(pool_name="my_pool", pool_size=5, **db_config)
+
+def get_connection():
+    
+    return connection_pool.get_connection()
+
 def menu():
-    while (True):
-        print("----welcome to the database---")
-        print("1.access database as patient:")
-        print("2.access databse as staff")
-        ch=int(input("enter your choice"))
-        if ch==1:
-            patient()
-        elif ch==2:
-            adminmenu()
-        else:
-            print("wrong choice ")
-            menu()
+    while True:
+        print("---- Welcome to the database ---")
+        print("1. Access database as patient")
+        print("2. Access database as staff")
+        try:
+            choice = int(input("Enter your choice: "))
+            if choice not in [1, 2]:
+                raise ValueError("Invalid choice. Please enter 1 or 2.")
+            if choice == 1:
+                patient()
+            elif choice == 2:
+                admin_menu()
+        except ValueError as ve:
+            print(ve)
 
-
-        
-def adminmenu():
-    print("#### admin entry ####")
-    username=int(input("enter the username"))
-    password=int(input("enter the password"))
-    if username== "admin" and password == "adminpass":
-        hmenu()
-
- def hmenu():
-     print("1.DO YOU WANT TO ACCESS THE STAFF SECTION")
-     print("2.ENTER AS INTERN")
-     inp=int(input("enter your choice"))
-     if ch==1:
-         doctor()
-     elif ch==2:
-         intern()
+def admin_menu():
+    print("#### Admin Entry ####")
+    username = input("Enter the username: ")
+    password = input("Enter the password: ")
+    if username == "admin" and password == "adminpass":
+        hospital_menu()
     else:
-        print("wrong choice")
-def mdoctor():
-    while (True):
-        print("1.do you want to access the HR module?")
-        print("2.do you want to access the doctors portal")
-        inps=int(input("enter your choice"))
-        if inps==1:
-            doctor()
-        elif inps==2:
-            pdoctor()
-        else:
-            print("wrong option/ choose again")
-            mdoctor()
+        print("Incorrect username or password.")
+        menu()
+
+def hospital_menu():
+    print("1. Do you want to access the staff section?")
+    print("2. Enter as intern")
+    try:
+        choice = int(input("Enter your choice: "))
+        if choice not in [1, 2]:
+            raise ValueError("Invalid choice. Please enter 1 or 2.")
+        if choice == 1:
+            doctor_menu()
+        elif choice == 2:
+            intern()
+    except ValueError as ve:
+        print(ve)
+        hospital_menu()
+
+def doctor_menu():
+    while True:
+        print("1. Do you want to access the HR module?")
+        print("2. Do you want to access the doctor's portal?")
+        try:
+            choice = int(input("Enter your choice: "))
+            if choice not in [1, 2]:
+                raise ValueError("Invalid choice. Please enter 1 or 2.")
+            if choice == 1:
+                hr_module()
+            elif choice == 2:
+                pdoctor()
+        except ValueError as ve:
+            print(ve)
 
 def pdoctor():
-    while (True):
-        print("---WELCOME TO DOCTORS PORTAL---")
-        print("what would you like to do?")
-        print("1.view details")
-        print("2.update details")
-        print("3.delete records")
-        print("4.display details")
-        choice=int(input("enter your choice"))
-        if choice==1:
-            view()
-        elif choice==2:
-            update()
-        elif choice==3:
-            delete()
-        elif choice==4:
-            display()
-        else:
-            print("wrong choice enter again")
-            pdoctor()
+    while True:
+        print("--- WELCOME TO DOCTORS PORTAL ---")
+        print("What would you like to do?")
+        print("1. View details")
+        print("2. Update details")
+        print("3. Delete records")
+        print("4. Display details")
+        print("5. Back to main menu")
+        try:
+            choice = int(input("Enter your choice: "))
+            if choice not in [1, 2, 3, 4, 5]:
+                raise ValueError("Invalid choice. Please enter a number between 1 and 5.")
+            if choice == 1:
+                view()
+            elif choice == 2:
+                update()
+            elif choice == 3:
+                delete()
+            elif choice == 4:
+                display()
+            elif choice == 5:
+                menu()
+        except ValueError as ve:
+            print(ve)
 
 def view():
     try:
-        con=mys.connect(host="localhost",user="root",passwd="jeffjudev",database="employees")
-        mycursor=con.cursor()
-        NO=int(input("enter the employee  number"))
-        q="select * from DOCTOR where NO={}".format(NO)
-        mycursor.execute(q)
-        rows=mycursor.fetchall()
-
-    except Exception as e:
-            print(e)
-    finally:
-        if con.is_connected():
-            mycursor.close()
-            con.close()
-    
-def update():
-    try:
-        mycon=mys.connect(host="localhost",user="root",passwd="jeffjudev",database="employees")
-        mycursor=mycon.cursor()
-        EMPNO=int(input("enter the employee  number"))
-        q="select * from employees where NO={}".format(EMPNO)
-        mycursor.execute(q)
-        a=mycursor.fetchone()
-        if a!=None:
-            print(a)
-            while(True):        
-                print("1.update employee number")
-                print("2.update name")
-                print("3.update department")
-                print("4.update dateofjoin")
-                print("5.update salary")
-                print("6.update sex")
-                print("7.update age")
-                print("8.update address")
-                print("9.update leave balance")
-                print("10.back to main menu")
-                choice=int(input("enter the choice:"))
-                if choice==1:
-                    no=int(input("enter the new employee number"))
-                    sql="update teachers set No={} where EMPNO={}".format(NO,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the record is updated")
-                elif choice==2:
-                    NAME=input("enter the new name")
-                    sql="update employees set NAME='{}'where EMPNO='{}'".format(NAME,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the record is updated")
-                elif choice==3:
-                    DEPARTMENTs=input("enter the new department name")
-                    sql="update employees set DEPARTMENTs='{}' where EMPNO='{}'".format(DEPARTMENTs,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the record is updated")
-                elif choice==4:
-                    DATEOFJOIN=input("enter the new date")
-                    sql="update employees set DATEOFJOIN={} where EMPNO={}".format(DATEOFJOIN,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the record is updated")
-                elif choice==5:
-                    SALARY=int(input("enter the new salary"))
-                    sql="update employees set SALARY={} where EMPNO={}".format(SALARY,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the record is updated")
-                elif choice==6:
-                    SEX=input("enter the sex")
-                    sql="update employees set SEX='{}' where EMPNO='{}'".format(SEX,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("value has been updated")
-                elif choice==7:
-                    age=int(input("enter the age"))
-                    sql="update employees set age={} where EMPNO={}".format(age,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the value has been updated")
-                elif choice==8:
-                    ADDRESS=input("enter the new address")
-                    sql="update employees ADDRESS='{}' where EMPNO='{}'".format(ADDRESS,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the value has been updated")
-                elif choice==9:
-                    LEAVEBAL=int(input("enter the remaining leave balance of that employee"))
-                    sql="update employees set LEAVEBAL={} where EMPNO={}".format(LEAVEBAL,EMPNO)
-                    mycursor.execute(sql)
-                    mycon.commit()
-                    print("the value has been updated")
-                elif choice==10:
-                    hmenu()
-            else:
-                    print("no such employee number")
-                    
+        con = get_connection()
+        cursor = con.cursor()
+        NO = int(input("Enter the employee number: "))
+        q = "select * from DOCTOR where NO={}".format(NO)
+        cursor.execute(q)
+        rows = cursor.fetchall()
+        if not rows:
+            print("No record found.")
+        else:
+            print(tabulate(rows, headers=['No', 'NAME', 'DEPARTMENT', 'DATEOFJOIN', 'SALARY', 'SEX', 'AGE', 'ADDRESS', 'LEAVEBAL'], tablefmt='fancy_grid'))
     except Exception as e:
         print(e)
     finally:
-        if mycon.is_connected():
-            mycursor.close()
-            mycon.close()
+        if con.is_connected():
+            cursor.close()
+            con.close()
+
+def update():
+    try:
+        con = get_connection()
+        cursor = con.cursor()
+
+        while True:
+            EMPNO = int(input("Enter the employee number (0 to exit): "))
+            if EMPNO == 0:
+                break
+
+         
+            NAME = input("Enter the new name: ")
+            DEPARTMENT = input("Enter the new department: ")
+           
+
+            
+            params = [(NAME, DEPARTMENT, ...)]  
+
+           
+            sql = "UPDATE employees SET NAME = %s, DEPARTMENT = %s, ... WHERE EMPNO = %s"
+            cursor.executemany(sql, params)
+
+        con.commit()
+        print("The records have been updated.")
+    except Exception as e:
+        print(e)
+    finally:
+        if con.is_connected():
+            cursor.close()
+            con.close()
 
 def delete():
     try:
-        mycon=mys.connect(host="localhost",user="root",passwd="jeffjudev",database="employees")
-        mycursor=mycon.cursor()
-        EMPNO=int(input("enter the employee  number"))
-        sql="delete from employees where EMPNO={}".format(EMPNO)
-        mycursor.execute(sql)
-        mycon.commit()
-        print("the record has been deleted")
+        con = get_connection()
+        cursor = con.cursor()
+
+        while True:
+            EMPNO = int(input("Enter the employee number to delete (0 to exit): "))
+            if EMPNO == 0:
+                break
+
+            
+            params = [(EMPNO,)]
+
+            
+            sql = "DELETE FROM employees WHERE EMPNO = %s"
+            cursor.executemany(sql, params)
+
+        con.commit()
+        print("The records have been deleted.")
     except Exception as e:
         print(e)
     finally:
-        if mycon.is_connected():
-            mycursor.close()
-            mycon.close()
-    
-def doctor():
-    while (True):
-        print("------- WELCOME DOCTORS AND NURSES TO DIGITAL HR-------")
-        print("#######################################################")
-        print("choose your issue")
-        print("1.working overtime")
-        print("2.social harm")
-        print("3.payment issues")
-        print("4.CL EL")
-        print("5.other(s)")
-        if ch==1:
-            over()
-        elif ch==2:
-            social()
-        elif ch==3:
-            payment()
-        elif ch==4:
-            leave()
-        elif ch==5:
-            other()
-        else:
-            print("wrong choice choose again")
+        if con.is_connected():
+            cursor.close()
+            con.close()
 
-            doctor()
 def display():
-     try:
-        con=mys.connect(host="localhost",user="root",passwd="jeffjudev",database="employees")
-        mycursor=con.cursor()
-
-        
-        sql="select * from employees"
-        mycursor.execute(sql)
-        data=mycursor.fetchall()
-        print(tabulate(data,headers=['No','NAME','DEPARTMENT','DATEOFJOIN','SALARY','SEX','AGE','ADDRESS','LEAVEBAL'],tablefmt='fancy_grid'))
-
-
-    except Exception as e:
-            print(e)
-    finally:
-        if con.is_connected():
-            mycursor.close()
-            con.close()
-
-
-
-    
-def over():
-    ovr=int(input("enter the number of hours worked overtime"))
-    sal=int(input("enter the current salary"))
-    extra_sal=sal+0.01*ovr
-    print("the salary to be redeemed after overtime is ")
-    print(extra_sal)
-    print("+++contact accounts department to redeeem salary+++")
-
-def social():
-    inp=input("do you want to dial the helpline if yes press 1 ")
-    if inp==1:
-        print("you will be redirected to the police department")
-    
-
-
-def payment():
-    print("what is your issue?")
-    while (True):
-        print("1.payment not issued")
-        print("2.payment delayed")
-        print("3.issue with payslip")
-        choice1=int(input("enter your choice"))
-        if choice1==1:
-            table1()
-        elif choice1==2:
-            table1()
-        elif choice1==3:
-            table1()
-        else:
-            print("wrong option")
-            payment()
-
-def table1():
-    print("check for your details, if your details are not available check with the accounts department")
     try:
-        con=mys.connect(host="localhost",user="root",passwd="jeffjudev",database="hackzon")
-        mycursor=con.cursor()
-
-        
-        sql="select * from hackzon"
-        mycursor.execute(sql)
-        data=mycursor.fetchall()
-        print(tabulate(data,headers=['No','designation','date_of_join'],tablefmt='fancy_grid'))
-
-
+        con = get_connection()
+        cursor = con.cursor()
+        sql = "select * from employees"
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        if not data:
+            print("No records found.")
+        else:
+            print(tabulate(data, headers=['No', 'NAME', 'DEPARTMENT', 'DATEOFJOIN', 'SALARY', 'SEX', 'AGE', 'ADDRESS', 'LEAVEBAL'], tablefmt='fancy_grid'))
     except Exception as e:
-            print(e)
+        print(e)
     finally:
         if con.is_connected():
-            mycursor.close()
+            cursor.close()
             con.close()
-    
 
 def patient():
-    while (True):
-        print("1.do you want to book an appointment")
-        print("2.buy emergency medicines")
-        print("----3.book an ambulance----")
-        ch=int(input("enter your option"))
-        if ch==1:
-            appointment()
-        elif ch==2:
-            medicines()
-        elif ch==3:
-            ambulance()
-        else:
-            print("wrong choice choose again")
-            patient()
+    while True:
+        print("1. Do you want to book an appointment?")
+        print("2. Buy emergency medicines")
+        print("3. Book an ambulance")
+        try:
+            choice = int(input("Enter your option: "))
+            if choice not in [1, 2, 3]:
+                raise ValueError("Invalid choice. Please enter a number between 1 and 3.")
+            if choice == 1:
+                appointment()
+            elif choice == 2:
+                medicines()
+            elif choice == 3:
+                ambulance()
+        except ValueError as ve:
+            print(ve)
 
 def appointment():
-    print("=====#WELCOME TO APPOINTMENT BOOKINGS#=====")
     try:
-        con=mys.connect(host="localhost",user="root",passwd="jeffjudev",database="hackzon")
-        mycursor=con.cursor()
-        NO=int(input("enter the phone number."))
-        NAME=input("enter the name ")      
-        SEX=input("enter the sex")
-        AGE=int(input("enter the age"))
-        ADDRESS=input("enter the address")
+        con = get_connection()
+        cursor = con.cursor()
 
+        while True:
+            
+            NO = int(input("Enter the phone number (0 to exit): "))
+            if NO == 0:
+                break
+            NAME = input("Enter the name: ")
+            SEX = input("Enter the sex: ")
+            AGE = int(input("Enter the age: "))
+            ADDRESS = input("Enter the address: ")
 
-        
-        a="insert into patient values({},'{}','{}',{},'{}')".format(NO,NAME,SEX,AGE,ADDRESS)
+            
+            sql = "INSERT INTO patient (NO, NAME, SEX, AGE, ADDRESS) VALUES (%s, %s, %s, %s, %s)"
+            cursor.execute(sql, (NO, NAME, SEX, AGE, ADDRESS))
 
-
-        
-        mycursor.execute(a)
         con.commit()
-        print("your appointment has been booked")
-
-
-
+        print("Your appointment has been booked.")
     except Exception as e:
-             print(e)
+        print(e)
     finally:
         if con.is_connected():
-            mycursor.close()
+            cursor.close()
             con.close()
 
 def medicines():
-    print("===# welcome to the medicines page#===")
-    name=input("enter the medicines you want to purchase")
-    nos=int(input("enter the number of units you would like to order"))
-    total=nos*name
-    print("the total amount is")
-    print(total)
-    print("thank you for the purchase you will recieve your order shortly ")
-        
-def ambulance():
-     inp=input("press 1 for emergency ambulance service")
-     if ch==1:
-         print("the ambulance is on its way:")
-         print("kindly ensure the patient has been gven first aid")
-     else:
-         print("incorrect choice")
-         break
+    try:
+        con = get_connection()
+        cursor = con.cursor()
 
-menu()        
-    
+       
+        name = input("Enter the medicines you want to purchase: ")
+        nos = int(input("Enter the number of units you would like to order: "))
+        total = nos * name
+        print("The total amount is:", total)
+        print("Thank you for the purchase. You will receive your order shortly.")
+
+        
+
+    except Exception as e:
+        print(e)
+    finally:
+        if con.is_connected():
+            cursor.close()
+            con.close()
+
+def ambulance():
+    try:
+        con = get_connection()
+        cursor = con.cursor()
+
+        inp = input("Press 1 for emergency ambulance service: ")
+        if inp == '1':
+            print("The ambulance is on its way.")
+            print("Kindly ensure the patient has been given first aid.")
+
+        
+
+    except Exception as e:
+        print(e)
+    finally:
+        if con.is_connected():
+            cursor.close()
+            con.close()
+
+menu()
