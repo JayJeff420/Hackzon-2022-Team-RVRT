@@ -1,281 +1,232 @@
 import mysql.connector.pooling as mpool
 from tabulate import tabulate
+import bcrypt
 
+# =========================
+# DATABASE CONFIGURATION
+# =========================
 
-db_config = {
+DB_CONFIG = {
     "host": "localhost",
     "user": "root",
     "password": "jay",
     "database": "employees"
 }
 
+POOL = mpool.MySQLConnectionPool(
+    pool_name="hospital_pool",
+    pool_size=5,
+    **DB_CONFIG
+)
 
-connection_pool = mpool.MySQLConnectionPool(pool_name="my_pool", pool_size=5, **db_config)
 
-def get_connection():
-    
-    return connection_pool.get_connection()
+class DatabaseManager:
+    @staticmethod
+    def get_connection():
+        return POOL.get_connection()
 
-def menu():
-    while True:
-        print("---- Welcome to the database ---")
-        print("1. Access database as patient")
-        print("2. Access database as staff")
-        try:
-            choice = int(input("Enter your choice: "))
-            if choice not in [1, 2]:
-                raise ValueError("Invalid choice. Please enter 1 or 2.")
-            if choice == 1:
-                patient()
-            elif choice == 2:
-                admin_menu()
-        except ValueError as ve:
-            print(ve)
 
-def admin_menu():
-    print("#### Admin Entry ####")
-    username = input("Enter the username: ")
-    password = input("Enter the password: ")
-    if username == "admin" and password == "adminpass":
-        hospital_menu()
-    else:
-        print("Incorrect username or password.")
-        menu()
+# =========================
+# AUTHENTICATION
+# =========================
 
-def hospital_menu():
-    print("1. Do you want to access the staff section?")
-    print("2. Enter as intern")
-    try:
-        choice = int(input("Enter your choice: "))
-        if choice not in [1, 2]:
-            raise ValueError("Invalid choice. Please enter 1 or 2.")
-        if choice == 1:
-            doctor_menu()
-        elif choice == 2:
-            intern()
-    except ValueError as ve:
-        print(ve)
-        hospital_menu()
+class AuthService:
+    ADMIN_USERNAME = "admin"
+    ADMIN_HASHED_PASSWORD = bcrypt.hashpw(
+        b"adminpass", bcrypt.gensalt()
+    )
+
+    @staticmethod
+    def authenticate(username, password):
+        if username != AuthService.ADMIN_USERNAME:
+            return False
+        return bcrypt.checkpw(password.encode(), AuthService.ADMIN_HASHED_PASSWORD)
+
+
+# =========================
+# DOCTOR / EMPLOYEE SERVICE
+# =========================
+
+class EmployeeService:
+
+    @staticmethod
+    def view_employee(emp_no):
+        with DatabaseManager.get_connection() as con:
+            cur = con.cursor()
+            cur.execute("SELECT * FROM employees WHERE EMPNO = %s", (emp_no,))
+            rows = cur.fetchall()
+
+            if rows:
+                print(tabulate(
+                    rows,
+                    headers=[
+                        'EMPNO', 'NAME', 'DEPARTMENT', 'DATEOFJOIN',
+                        'SALARY', 'SEX', 'AGE', 'ADDRESS', 'LEAVEBAL'
+                    ],
+                    tablefmt='fancy_grid'
+                ))
+            else:
+                print("No record found.")
+
+    @staticmethod
+    def display_all():
+        with DatabaseManager.get_connection() as con:
+            cur = con.cursor()
+            cur.execute("SELECT * FROM employees")
+            rows = cur.fetchall()
+
+            if rows:
+                print(tabulate(
+                    rows,
+                    headers=[
+                        'EMPNO', 'NAME', 'DEPARTMENT', 'DATEOFJOIN',
+                        'SALARY', 'SEX', 'AGE', 'ADDRESS', 'LEAVEBAL'
+                    ],
+                    tablefmt='fancy_grid'
+                ))
+            else:
+                print("No records available.")
+
+    @staticmethod
+    def update_employee(emp_no, name, department):
+        with DatabaseManager.get_connection() as con:
+            cur = con.cursor()
+            cur.execute(
+                "UPDATE employees SET NAME=%s, DEPARTMENT=%s WHERE EMPNO=%s",
+                (name, department, emp_no)
+            )
+            con.commit()
+            print("Employee updated successfully.")
+
+    @staticmethod
+    def delete_employee(emp_no):
+        with DatabaseManager.get_connection() as con:
+            cur = con.cursor()
+            cur.execute("DELETE FROM employees WHERE EMPNO=%s", (emp_no,))
+            con.commit()
+            print("Employee deleted successfully.")
+
+
+# =========================
+# PATIENT SERVICES
+# =========================
+
+class PatientService:
+
+    @staticmethod
+    def book_appointment():
+        with DatabaseManager.get_connection() as con:
+            cur = con.cursor()
+            phone = input("Phone Number: ")
+            name = input("Name: ")
+            sex = input("Sex: ")
+            age = int(input("Age: "))
+            address = input("Address: ")
+
+            cur.execute(
+                "INSERT INTO patient (NO, NAME, SEX, AGE, ADDRESS) VALUES (%s,%s,%s,%s,%s)",
+                (phone, name, sex, age, address)
+            )
+            con.commit()
+            print("Appointment booked successfully.")
+
+    @staticmethod
+    def buy_medicine():
+        MEDICINE_PRICE = {
+            "paracetamol": 10,
+            "ibuprofen": 15,
+            "antibiotic": 25
+        }
+
+        medicine = input("Medicine name: ").lower()
+        qty = int(input("Quantity: "))
+
+        if medicine not in MEDICINE_PRICE:
+            print("Medicine not available.")
+            return
+
+        total = MEDICINE_PRICE[medicine] * qty
+        print(f"Total amount: ₹{total}")
+        print("Order confirmed.")
+
+    @staticmethod
+    def ambulance():
+        print("🚑 Ambulance dispatched. Stay calm.")
+
+
+# =========================
+# MENU SYSTEM
+# =========================
 
 def doctor_menu():
     while True:
-        print("1. Do you want to access the HR module?")
-        print("2. Do you want to access the doctor's portal?")
-        try:
-            choice = int(input("Enter your choice: "))
-            if choice not in [1, 2]:
-                raise ValueError("Invalid choice. Please enter 1 or 2.")
-            if choice == 1:
-                hr_module()
-            elif choice == 2:
-                pdoctor()
-        except ValueError as ve:
-            print(ve)
+        print("\nDoctor Portal")
+        print("1. View employee")
+        print("2. Update employee")
+        print("3. Delete employee")
+        print("4. Display all")
+        print("5. Exit")
 
-def pdoctor():
+        choice = input("Choice: ")
+
+        if choice == "1":
+            EmployeeService.view_employee(int(input("Employee No: ")))
+        elif choice == "2":
+            emp = int(input("Employee No: "))
+            name = input("New Name: ")
+            dept = input("New Department: ")
+            EmployeeService.update_employee(emp, name, dept)
+        elif choice == "3":
+            EmployeeService.delete_employee(int(input("Employee No: ")))
+        elif choice == "4":
+            EmployeeService.display_all()
+        elif choice == "5":
+            break
+
+
+def patient_menu():
     while True:
-        print("--- WELCOME TO DOCTORS PORTAL ---")
-        print("What would you like to do?")
-        print("1. View details")
-        print("2. Update details")
-        print("3. Delete records")
-        print("4. Display details")
-        print("5. Back to main menu")
-        try:
-            choice = int(input("Enter your choice: "))
-            if choice not in [1, 2, 3, 4, 5]:
-                raise ValueError("Invalid choice. Please enter a number between 1 and 5.")
-            if choice == 1:
-                view()
-            elif choice == 2:
-                update()
-            elif choice == 3:
-                delete()
-            elif choice == 4:
-                display()
-            elif choice == 5:
-                menu()
-        except ValueError as ve:
-            print(ve)
+        print("\nPatient Portal")
+        print("1. Book Appointment")
+        print("2. Buy Medicine")
+        print("3. Ambulance")
+        print("4. Exit")
 
-def view():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
-        NO = int(input("Enter the employee number: "))
-        q = "select * from DOCTOR where NO={}".format(NO)
-        cursor.execute(q)
-        rows = cursor.fetchall()
-        if not rows:
-            print("No record found.")
-        else:
-            print(tabulate(rows, headers=['No', 'NAME', 'DEPARTMENT', 'DATEOFJOIN', 'SALARY', 'SEX', 'AGE', 'ADDRESS', 'LEAVEBAL'], tablefmt='fancy_grid'))
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
+        choice = input("Choice: ")
 
-def update():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
+        if choice == "1":
+            PatientService.book_appointment()
+        elif choice == "2":
+            PatientService.buy_medicine()
+        elif choice == "3":
+            PatientService.ambulance()
+        elif choice == "4":
+            break
 
-        while True:
-            EMPNO = int(input("Enter the employee number (0 to exit): "))
-            if EMPNO == 0:
-                break
 
-         
-            NAME = input("Enter the new name: ")
-            DEPARTMENT = input("Enter the new department: ")
-           
-
-            
-            params = [(NAME, DEPARTMENT, ...)]  
-
-           
-            sql = "UPDATE employees SET NAME = %s, DEPARTMENT = %s, ... WHERE EMPNO = %s"
-            cursor.executemany(sql, params)
-
-        con.commit()
-        print("The records have been updated.")
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
-
-def delete():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
-
-        while True:
-            EMPNO = int(input("Enter the employee number to delete (0 to exit): "))
-            if EMPNO == 0:
-                break
-
-            
-            params = [(EMPNO,)]
-
-            
-            sql = "DELETE FROM employees WHERE EMPNO = %s"
-            cursor.executemany(sql, params)
-
-        con.commit()
-        print("The records have been deleted.")
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
-
-def display():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
-        sql = "select * from employees"
-        cursor.execute(sql)
-        data = cursor.fetchall()
-        if not data:
-            print("No records found.")
-        else:
-            print(tabulate(data, headers=['No', 'NAME', 'DEPARTMENT', 'DATEOFJOIN', 'SALARY', 'SEX', 'AGE', 'ADDRESS', 'LEAVEBAL'], tablefmt='fancy_grid'))
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
-
-def patient():
+def main():
     while True:
-        print("1. Do you want to book an appointment?")
-        print("2. Buy emergency medicines")
-        print("3. Book an ambulance")
-        try:
-            choice = int(input("Enter your option: "))
-            if choice not in [1, 2, 3]:
-                raise ValueError("Invalid choice. Please enter a number between 1 and 3.")
-            if choice == 1:
-                appointment()
-            elif choice == 2:
-                medicines()
-            elif choice == 3:
-                ambulance()
-        except ValueError as ve:
-            print(ve)
+        print("\nHospital Management System")
+        print("1. Admin")
+        print("2. Patient")
+        print("3. Exit")
 
-def appointment():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
+        choice = input("Choice: ")
 
-        while True:
-            
-            NO = int(input("Enter the phone number (0 to exit): "))
-            if NO == 0:
-                break
-            NAME = input("Enter the name: ")
-            SEX = input("Enter the sex: ")
-            AGE = int(input("Enter the age: "))
-            ADDRESS = input("Enter the address: ")
+        if choice == "1":
+            u = input("Username: ")
+            p = input("Password: ")
 
-            
-            sql = "INSERT INTO patient (NO, NAME, SEX, AGE, ADDRESS) VALUES (%s, %s, %s, %s, %s)"
-            cursor.execute(sql, (NO, NAME, SEX, AGE, ADDRESS))
+            if AuthService.authenticate(u, p):
+                doctor_menu()
+            else:
+                print("Invalid credentials.")
+        elif choice == "2":
+            patient_menu()
+        elif choice == "3":
+            print("Goodbye.")
+            break
 
-        con.commit()
-        print("Your appointment has been booked.")
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
 
-def medicines():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
-
-       
-        name = input("Enter the medicines you want to purchase: ")
-        nos = int(input("Enter the number of units you would like to order: "))
-        total = nos * name
-        print("The total amount is:", total)
-        print("Thank you for the purchase. You will receive your order shortly.")
-
-        
-
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
-
-def ambulance():
-    try:
-        con = get_connection()
-        cursor = con.cursor()
-
-        inp = input("Press 1 for emergency ambulance service: ")
-        if inp == '1':
-            print("The ambulance is on its way.")
-            print("Kindly ensure the patient has been given first aid.")
-
-        
-
-    except Exception as e:
-        print(e)
-    finally:
-        if con.is_connected():
-            cursor.close()
-            con.close()
-
-menu()
+if __name__ == "__main__":
+    main()
